@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <title>Pipo Runner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <main id="stage" class="menu" aria-label="Pipo Runner">
+    <div class="sun"></div>
+    <div id="clouds"></div>
+    <div class="hills far"></div>
+    <div class="hills near"></div>
+    <div class="night-sky"></div>
+    <div class="ground"></div>
+
+    <div id="player" aria-hidden="true">
+      <div class="leg back"></div>
+      <div class="leg front"></div>
+      <div class="body"><div class="wing"></div><div class="eye"></div><div class="beak"></div></div>
+    </div>
+
+    <div id="obstacles"></div>
+
+    <!-- Animação de morte: um caixão cai sobre o pintinho e um fantasminha sobe. -->
+    <div id="coffin"></div>
+    <div id="ghost"></div>
+    <div id="fx"></div>
+
+    <div id="hud">
+      <span>Pontos <b id="score">0</b></span>
+      <span>Nível <b id="level">1</b></span>
+      <span>Recorde <b id="best">0</b></span>
+    </div>
+    <div id="level-banner"></div>
+
+    <section id="start-screen" class="screen visible">
+      <h1>Pipo Runner</h1>
+      <button id="play-btn" class="btn">JOGAR</button>
+      <div class="skins" role="radiogroup" aria-label="Visual do Pipo">
+        <div id="skin-picker" class="skins"></div>
+        <span id="skin-name"></span>
+      </div>
+      <p class="hint">Pule com <kbd>Espaço</kbd> ou <kbd>↑</kbd> &nbsp;·&nbsp; Abaixe com <kbd>↓</kbd> &nbsp;·&nbsp; Pausa: <kbd>P</kbd> &nbsp;·&nbsp; Skin: <kbd>←</kbd> <kbd>→</kbd></p>
+      <p class="hint">No celular: toque à direita para pular, segure à esquerda para abaixar</p>
+    </section>
+
+    <section id="over-screen" class="screen">
+      <h2>GAME OVER</h2>
+      <p id="death-quip" class="hint"></p>
+      <p class="result">Pontos: <b id="final-score">0</b> &nbsp; Recorde: <b id="final-best">0</b></p>
+      <p id="new-record" class="record-note">Novo recorde!</p>
+      <button id="retry-btn" class="btn">JOGAR NOVAMENTE</button>
+      <button id="menu-btn" class="btn small">MENU INICIAL</button>
+    </section>
+  </main>
+  <script src="js/script.js"></script>
+</body>
+</html>

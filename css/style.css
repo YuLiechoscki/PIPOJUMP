@@ -1,0 +1,471 @@
+/* ---------------------------------------------------------
+   1. Cores e medidas
+   Mude aqui para trocar o visual do pipo
+   --------------------------------------------------------- */
+:root {
+  /* Pintinho */
+  --ink: #42309b;          /* olho e contorno dos títulos */
+  --chick: #ffcf4a;        /* corpo */
+  --chick-wing: #f0b72f;   /* asa */
+  --beak: #ff8a3d;         /* bico e pernas */
+
+  /* Chão */
+  --grass: #8fdc8f;
+  --grass-dark: #6fc57b;
+  --soil: #2dab78;
+  --soil-dark: #185d46;
+
+  /* Obstáculos */
+  --stump: #8a5530;
+  --stump-top: #c48a55;
+  --bush: #1f5a3f;
+  --bush-light: #2f7d57;
+
+  /* Pássaros: corpo e asa de cada tipo */
+  --bird: #e8505b;          --bird-wing: #b8323f;     /* corvo */
+  --bird-flock: #8e4ec6;    --bird-flock-wing: #6a35a0;  /* bando */
+  --bird-fast: #2f7fe0;     --bird-fast-wing: #1f5ab0;   /* falcão */
+
+  /* Botões */
+  --button-shadow: #c9962a;
+
+  /* Altura do chão. O JavaScript usa o mesmo valor para posicionar os obstáculos. */
+  --ground-h: 80px;
+
+  /* Posição do cenário. Estas três são atualizadas pelo JavaScript a cada quadro,
+     criando a sensação de movimento. Não precisa mexer. */
+  --g: 0px; --h1: 0px; --h2: 0px;
+}
+
+
+/* ---------------------------------------------------------
+   2. Base da página e palco do jogo
+   --------------------------------------------------------- */
+* { box-sizing: border-box; margin: 0; }
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background: #1b1638;
+  font-family: "Baloo 2", "Trebuchet MS", system-ui, sans-serif;
+  touch-action: manipulation;   /* evita zoom por toque duplo no celular */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Área visível do jogo: 800x400, centralizada. O JavaScript ajusta a escala
+   para caber em qualquer tela. O céu é um degradê do roxo ao pôr do sol. */
+#stage {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 800px; height: 400px;
+  transform: translate(-50%, -50%);
+  overflow: hidden;
+  background: linear-gradient(#5b4fb0 0%, #5b4fb0 55%, #ffd9a6 100%);
+  border-radius: 12px;
+}
+
+
+/* ---------------------------------------------------------
+   3. Cenário
+   --------------------------------------------------------- */
+
+/* Sol (vira lua à noite, veja mais abaixo). */
+.sun {
+  position: absolute; right: 90px; top: 40px;
+  width: 70px; height: 70px; border-radius: 50%;
+  background: #fff1c2; box-shadow: 0 0 40px 14px rgba(255, 226, 160, .45);
+  transition: background .8s, box-shadow .8s;
+}
+
+/* Nuvens: o corpo é a própria caixa e o "morrinho" de cima é um pseudo-elemento. */
+.cloud {
+  position: absolute; height: 26px; border-radius: 20px;
+  background: rgba(255, 255, 255, .7);
+}
+.cloud::before {
+  content: ""; position: absolute; left: 22%; top: -14px;
+  width: 40%; height: 28px; border-radius: 50%; background: inherit;
+}
+
+/* Colinas em duas camadas. Os desenhos são SVGs embutidos na própria imagem de fundo
+   (por isso as cores aqui são fixas: variáveis não funcionam dentro de url
+   Cores: colina distante #574fa6, colina próxima #356f8c. */
+.hills {
+  position: absolute; left: 0; right: 0;
+  bottom: var(--ground-h);
+  background-repeat: repeat-x;
+}
+.hills.far {
+  height: 120px; background-size: 400px 120px;
+  background-position: var(--h1) bottom;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='120'%3E%3Cpath d='M0 120V70Q100 0 200 70T400 70V120Z' fill='%23574fa6'/%3E%3C/svg%3E");
+}
+.hills.near {
+  height: 70px; background-size: 300px 70px;
+  background-position: var(--h2) bottom;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='70'%3E%3Cpath d='M0 70V40Q75 0 150 40T300 40V70Z' fill='%23356f8c'/%3E%3C/svg%3E");
+}
+
+/* Chão: terra com bolinhas escuras, e uma faixa de grama em zigue-zague por cima. */
+.ground {
+  position: absolute; left: 0; right: 0; bottom: 0; height: var(--ground-h);
+  background-color: var(--soil);
+  background-image: radial-gradient(circle at 10px 10px, var(--soil-dark) 4px, transparent 5px);
+  background-size: 70px 36px;
+  background-position: var(--g) 22px;
+}
+.ground::before {
+  content: ""; position: absolute; left: 0; right: 0; top: 0; height: 12px;
+  background-color: var(--grass);
+  background-image: linear-gradient(135deg, transparent 50%, var(--grass-dark) 50%);
+  background-size: 24px 12px;
+  background-position: var(--g) 0;
+}
+
+/* Noite: uma camada escura aparece por cima do céu (mas não do chão)
+   e o sol vira uma lua azulada. */
+.night-sky {
+  position: absolute; left: 0; right: 0; top: 0; bottom: var(--ground-h);
+  background: linear-gradient(rgba(10, 8, 45, .7), rgba(40, 20, 70, .35));
+  opacity: 0; transition: opacity 2s ease; pointer-events: none;
+}
+#stage.night .night-sky { opacity: 1; }
+#stage.night .sun {
+  background: #e9ecff; box-shadow: 0 0 30px 10px rgba(190, 200, 255, .35);
+}
+
+
+/* ---------------------------------------------------------
+   4. Pintinho
+   --------------------------------------------------------- */
+#player {
+  position: absolute; left: 80px; bottom: var(--ground-h);
+  width: 44px; height: 48px;
+  transition: left .6s ease;   /* desliza do centro (menu) até a posição de jogo */
+  will-change: transform;
+}
+#stage.menu #player { left: 378px; }   /* centralizado na tela inicial */
+
+#player .body {
+  position: absolute; left: 0; top: 0; width: 44px; height: 40px;
+  background: var(--chick); border-radius: 50% 50% 45% 45%;
+  animation: bob .3s ease-in-out infinite;   /* quicando enquanto corre */
+}
+.eye { position: absolute; right: 10px; top: 11px; width: 7px; height: 7px; border-radius: 50%; background: var(--ink); }
+.wing { position: absolute; left: 6px; top: 18px; width: 18px; height: 12px; border-radius: 50%; background: var(--chick-wing); }
+
+/* O bico é um triângulo feito só com bordas. */
+.beak {
+  position: absolute; right: -9px; top: 17px; width: 0; height: 0;
+  border-left: 11px solid var(--beak);
+  border-top: 5px solid transparent; border-bottom: 5px solid transparent;
+}
+
+/* Pernas: balançam a partir do topo; a de trás começa defasada para parecer passada. */
+.leg {
+  position: absolute; bottom: 0; width: 5px; height: 14px; border-radius: 3px;
+  background: var(--beak); transform-origin: top center;
+  animation: step .3s linear infinite;
+}
+.leg.back  { left: 14px; animation-delay: -.15s; }
+.leg.front { left: 26px; }
+
+@keyframes step { 0%, 100% { transform: rotate(35deg); } 50% { transform: rotate(-35deg); } }
+@keyframes bob  { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+
+/* No ar ou no game over: congela a corrida. */
+#player.airborne .leg { animation-play-state: paused; transform: rotate(-30deg); }
+#player.airborne .body { animation-play-state: paused; }
+#stage.over #player .leg, #stage.over #player .body { animation-play-state: paused; }
+
+/* Agachado: corpo achatado e rosto mais baixo. */
+#player.ducking .body { top: 16px; height: 24px; border-radius: 50%; }
+#player.ducking .eye  { top: 5px; }
+#player.ducking .beak { top: 9px; }
+#player.ducking .wing { top: 8px; height: 10px; }
+#player.ducking .leg  { height: 9px; }
+
+
+/* ---------------------------------------------------------
+   4b. Skins do pintinho
+   O JavaScript coloca data-skin="nome" no #player. Cada skin troca as cores
+   (só dentro do #player, então botões e textos não mudam) e pode ter um
+   acessório desenhado com ::before e ::after do corpo.
+   Para criar uma skin nova: adicione um bloco aqui e uma linha na lista SKINS
+   do script.js.
+   --------------------------------------------------------- */
+
+/* Só cores */
+#player[data-skin="azul"]  { --chick: #6ec3ff; --chick-wing: #3f9be0; }
+#player[data-skin="verde"] { --chick: #7ae582; --chick-wing: #4fc45a; }
+
+/* Rosa, com laço */
+#player[data-skin="rosa"] { --chick: #ff9ec4; --chick-wing: #e873a3; }
+#player[data-skin="rosa"] .body::before {
+  content: ""; position: absolute; left: 14px; top: -6px;
+  width: 9px; height: 9px; border-radius: 50%;
+  background: #e63977; box-shadow: 11px 0 0 #e63977;
+}
+#player[data-skin="rosa"] .body::after {
+  content: ""; position: absolute; left: 21px; top: -4px;
+  width: 5px; height: 5px; border-radius: 50%; background: #b0245a;
+}
+
+/* Ninja: corpo escuro e faixa vermelha com ponta balançando atrás */
+#player[data-skin="ninja"] { --chick: #3a3a4a; --chick-wing: #2a2a38; }
+#player[data-skin="ninja"] .eye { background: #fff; }
+#player[data-skin="ninja"] .body::before {
+  content: ""; position: absolute; left: 5px; top: 9px;
+  width: 34px; height: 6px; background: #e63946;
+}
+#player[data-skin="ninja"] .body::after {
+  content: ""; position: absolute; left: -8px; top: 11px;
+  width: 12px; height: 4px; background: #e63946; border-radius: 2px;
+  transform-origin: right center;
+  animation: ninja-tail .3s ease-in-out infinite alternate;
+}
+@keyframes ninja-tail { from { transform: rotate(-12deg); } to { transform: rotate(18deg); } }
+
+/* Rei: coroa dourada */
+#player[data-skin="rei"] .body::before {
+  content: ""; position: absolute; left: 11px; top: -12px;
+  width: 22px; height: 14px; background: #e0a100;
+  clip-path: polygon(0 100%, 0 0, 25% 50%, 50% 0, 75% 50%, 100% 0, 100% 100%);
+}
+
+/* Mago: chapéu roxo pontudo com aba */
+#player[data-skin="mago"] { --chick: #c9b3ff; --chick-wing: #a68be8; }
+#player[data-skin="mago"] .body::before {
+  content: ""; position: absolute; left: 10px; top: -24px; width: 0; height: 0;
+  border-left: 12px solid transparent; border-right: 12px solid transparent;
+  border-bottom: 26px solid #6b46c1;
+}
+#player[data-skin="mago"] .body::after {
+  content: ""; position: absolute; left: 6px; top: -3px;
+  width: 32px; height: 5px; border-radius: 3px; background: #553c9a;
+}
+
+
+/* Seletor de skins na tela inicial */
+.skins { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.skin-btn {
+  width: 34px; height: 34px; padding: 0; border-radius: 50%; cursor: pointer;
+  border: 3px solid rgba(255, 255, 255, .35); font-size: 16px; line-height: 1;
+  transition: transform .1s, border-color .1s;
+}
+.skin-btn:hover { transform: translateY(-2px); }
+.skin-btn[aria-checked="true"] { border-color: #fff; transform: scale(1.15); }
+.skin-btn:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+#skin-name { min-width: 84px; text-align: left; font-weight: 800; font-size: 17px; }
+.skin-btn.locked { filter: grayscale(1) brightness(.7); opacity: .75; }
+
+
+/* ---------------------------------------------------------
+   4c. Animação de morte
+   O JavaScript só liga a classe "dead" no #stage (e define --death-alt, a altura
+   em que o pintinho estava). Tudo o mais é CSS, na linha do tempo abaixo:
+     0,00 s  caixão começa a cair
+     0,45 s  caixão bate: pintinho some, penas voam, tela treme (o JS cuida das penas)
+     0,55 s  fantasminha sobe, balançando
+     0,80 s  aparece a tela de game over
+   Se mudar o tempo de queda do caixão, ajuste COFFIN_FALL_MS no script.js.
+   --------------------------------------------------------- */
+#coffin, #ghost, #fx { pointer-events: none; }
+
+/* O pintinho some no instante em que o caixão bate nele. */
+#stage.dead #player { opacity: 0; transition: opacity 0s .45s; }
+
+#coffin {
+  display: none; position: absolute; left: 74px;
+  bottom: calc(var(--ground-h) + var(--death-alt, 0px));
+  width: 56px; height: 76px;
+  background: linear-gradient(90deg, transparent 50%, rgba(0, 0, 0, .2) 50%), #7a4a2a;
+  clip-path: polygon(26% 0, 74% 0, 100% 22%, 76% 100%, 24% 100%, 0 22%);
+}
+#coffin::after {
+  content: "RIP"; position: absolute; left: 0; right: 0; top: 26px;
+  text-align: center; color: #f3dfbf; font-size: 14px; font-weight: 800;
+}
+#stage.dead #coffin { display: block; animation: coffin-drop .5s ease-in both; }
+@keyframes coffin-drop {
+  0%   { transform: translateY(-470px); }
+  90%  { transform: translateY(0); animation-timing-function: ease-out; }
+  95%  { transform: translateY(-7px); }
+  100% { transform: translateY(0); }
+}
+
+/* Penas: o JavaScript cria e define para onde cada uma voa (--dx, --rise, --fall, --rot). */
+.feather {
+  position: absolute; left: 98px;
+  bottom: calc(var(--ground-h) + var(--death-alt, 0px) + 20px);
+  width: 8px; height: 14px; border-radius: 50% 50% 50% 0;
+  animation: feather .9s ease-out both;
+}
+@keyframes feather {
+  0%   { opacity: 1; transform: translate(0, 0) rotate(0); }
+  40%  { opacity: 1; transform: translate(calc(var(--dx) * .6), var(--rise)) rotate(calc(var(--rot) * .5)); }
+  100% { opacity: 0; transform: translate(var(--dx), var(--fall)) rotate(var(--rot)); }
+}
+
+/* Fantasminha: cúpula com barra ondulada (clip-path), olhos e boquinha. */
+#ghost {
+  display: none; position: absolute; left: 84px;
+  bottom: calc(var(--ground-h) + var(--death-alt, 0px) + 30px);
+  width: 36px; height: 44px; background: rgba(255, 255, 255, .9);
+  clip-path: polygon(0 100%, 0 38%, 6% 20%, 20% 6%, 50% 0, 80% 6%, 94% 20%, 100% 38%,
+                     100% 100%, 83% 86%, 66% 100%, 50% 86%, 33% 100%, 16% 86%);
+}
+#ghost::before {
+  content: ""; position: absolute; left: 9px; top: 15px; width: 5px; height: 8px;
+  border-radius: 50%; background: var(--ink); box-shadow: 13px 0 0 var(--ink);
+}
+#ghost::after {
+  content: ""; position: absolute; left: 15px; top: 29px; width: 6px; height: 7px;
+  border-radius: 50%; background: var(--ink);
+}
+#stage.dead #ghost { display: block; animation: ghost-rise 2.4s ease-out .55s both; }
+@keyframes ghost-rise {
+  0%   { opacity: 0;  transform: translate(0, 10px) scale(.6); }
+  12%  { opacity: .95; transform: translate(0, -10px) scale(1); }
+  30%  { transform: translate(14px, -80px); }
+  55%  { transform: translate(-14px, -160px); }
+  80%  { opacity: .8; transform: translate(14px, -240px); }
+  100% { opacity: 0;  transform: translate(0, -320px); }
+}
+
+/* A tela de game over espera a animação aparecer antes de entrar. */
+#stage.dead #over-screen.visible { transition-delay: .8s; }
+
+
+/* ---------------------------------------------------------
+   5. Obstáculos
+   O JavaScript define largura, altura e posição de cada um;
+   aqui ficam só a aparência.
+   --------------------------------------------------------- */
+.obstacle { position: absolute; left: 0; bottom: var(--ground-h); will-change: transform; }
+
+/* Toco e tronco alto: madeira com o topo mais claro e uma sombra do lado. */
+.obstacle.stump, .obstacle.tall {
+  background: var(--stump); border-radius: 6px 6px 2px 2px;
+  box-shadow: inset 0 8px 0 var(--stump-top), inset -6px 0 0 rgba(0, 0, 0, .15);
+}
+
+/* Arbusto: redondo em cima, com duas manchas claras de folhas. */
+.obstacle.bush {
+  background: var(--bush); border-radius: 50% 50% 8px 8px;
+  box-shadow: inset 10px 8px 0 -2px var(--bush-light), inset -12px 6px 0 -4px var(--bush-light);
+}
+
+/* Pássaros. O corpo é a caixa, o bico é o ::before (triângulo à esquerda)
+   e a asa é o ::after (bate para cima e para baixo). */
+.obstacle.bird {
+  background: var(--bird); border-radius: 60% 40% 50% 50%;
+  box-shadow: inset -8px 0 0 rgba(0, 0, 0, .12);
+}
+.obstacle.bird::before {
+  content: ""; position: absolute; left: -9px; top: 9px;
+  border-right: 10px solid var(--beak);
+  border-top: 4px solid transparent; border-bottom: 4px solid transparent;
+}
+.obstacle.bird::after {
+  content: ""; position: absolute; left: 14px; top: -12px;
+  width: 20px; height: 16px; background: var(--bird-wing); border-radius: 50% 50% 0 0;
+  transform-origin: bottom center;
+  animation: flap .25s ease-in-out infinite alternate;
+}
+@keyframes flap { from { transform: scaleY(1); } to { transform: scaleY(-1); } }
+
+/* Bando (roxo): pássaros empilhados, só dá para passar abaixado. */
+.obstacle.bird.flock { background: var(--bird-flock); }
+.obstacle.bird.flock::after { background: var(--bird-flock-wing); }
+
+/* Falcão (azul): mais rápido, então a asa também bate mais rápido. */
+.obstacle.bird.fast { background: var(--bird-fast); }
+.obstacle.bird.fast::after { background: var(--bird-fast-wing); animation-duration: .15s; }
+
+
+/* ---------------------------------------------------------
+   6. Interface
+   --------------------------------------------------------- */
+
+/* Pontos, nível e recorde no topo (não atrapalham cliques e toques). */
+#hud {
+  position: absolute; top: 12px; left: 16px; right: 16px;
+  display: flex; justify-content: space-between;
+  color: #fff; font-size: 22px; font-weight: 500; text-shadow: 0 2px 0 rgba(42, 34, 80, .5);
+  pointer-events: none;
+}
+#hud b { font-weight: 800; }
+
+/* Aviso grande de "NÍVEL X" e "PAUSADO". */
+#level-banner {
+  position: absolute; left: 0; right: 0; top: 90px; text-align: center;
+  color: #fff; font-size: 44px; font-weight: 800; text-shadow: 0 4px 0 var(--ink);
+  opacity: 0; transform: scale(.8); pointer-events: none;
+  transition: opacity .3s, transform .3s;
+}
+#level-banner.show { opacity: 1; transform: none; }
+
+/* Telas de menu e game over: ficam escondidas e aparecem com um leve deslize.
+   Deixam 130px livres embaixo para o chão e o pintinho continuarem visíveis. */
+.screen {
+  position: absolute; inset: 0 0 130px 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+  color: #fff; text-align: center;
+  opacity: 0; visibility: hidden; transform: translateY(-10px);
+  transition: opacity .4s ease, transform .4s ease, visibility .4s;
+}
+.screen.visible { opacity: 1; visibility: visible; transform: none; }
+
+h1, h2 { font-weight: 800; line-height: 1; text-shadow: 0 4px 0 var(--ink); }
+h1 { font-size: 64px; }
+h2 { font-size: 54px; }
+.result { font-size: 22px; }
+.record-note { color: var(--chick); font-weight: 800; font-size: 20px; min-height: 1em; }
+.hint { font-size: 17px; opacity: .95; }
+
+/* Teclas desenhadas no texto de ajuda (<kbd>). */
+kbd {
+  padding: 0 7px; border-radius: 6px; background: rgba(255, 255, 255, .22);
+  font-family: inherit; font-weight: 800;
+}
+
+/* Botão principal: amarelo, com "sombra sólida" que some quando é apertado. */
+.btn {
+  font: inherit; font-size: 24px; font-weight: 800; color: var(--ink);
+  padding: 6px 34px; border: 0; border-radius: 999px; cursor: pointer;
+  background: var(--chick); box-shadow: 0 5px 0 var(--button-shadow);
+  transition: transform .1s, box-shadow .1s;
+}
+.btn:hover { transform: translateY(-1px); }
+.btn:active { transform: translateY(4px); box-shadow: 0 1px 0 var(--button-shadow); }
+.btn:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+
+/* Botão secundário (ex.: "Menu inicial"): menor e translúcido, para não competir
+   com o principal. */
+.btn.small {
+  font-size: 18px; padding: 3px 24px; color: #fff;
+  background: rgba(255, 255, 255, .22); box-shadow: 0 4px 0 rgba(0, 0, 0, .25);
+}
+.btn.small:active { box-shadow: 0 1px 0 rgba(0, 0, 0, .25); }
+
+
+/* ---------------------------------------------------------
+   7. Efeitos e acessibilidade
+   --------------------------------------------------------- */
+
+/* Tremida rápida quando o pintinho bate. */
+#stage.shake { animation: shake .35s; }
+@keyframes shake {
+  0%, 100% { margin-left: 0; } 25% { margin-left: -8px; } 75% { margin-left: 8px; }
+}
+
+/* Quem pede "menos movimento" no sistema fica sem transições e sem tremida. */
+@media (prefers-reduced-motion: reduce) {
+  .screen, #player, .night-sky, #level-banner { transition: none; }
+  #stage.shake { animation: none; }
+  .obstacle.bird::after { animation: none; }
+  #stage.dead #ghost, .feather { display: none; }
+  #stage.dead #coffin { animation: none; }
+}
